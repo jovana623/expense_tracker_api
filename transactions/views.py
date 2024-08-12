@@ -1,6 +1,6 @@
 from rest_framework import generics
-from .models import Categories,Types
-from .serializers import CategorySerializer,TypeSerializer
+from .models import Categories,Types,Transactions
+from .serializers import CategorySerializer,TypeSerializer,TransactionSerializer
 from rest_framework.permissions import IsAuthenticated
 
 
@@ -37,4 +37,25 @@ class TypesListAPIView(generics.ListAPIView):
 class RetrieveUpdateDestroyTypeAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset=Types.objects.all()
     serializer_class=TypeSerializer
+    permission_classes=[IsAuthenticated]
+
+
+class CreateTransactionAPIView(generics.CreateAPIView):
+    queryset=Transactions.objects.all()
+    serializer_class=TransactionSerializer
+    permission_classes=[IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class TransactionsListAPIView(generics.ListAPIView):
+    queryset=Transactions.objects.all()
+    serializer_class=TransactionSerializer
+    permission_classes=[IsAuthenticated]
+
+
+class RetrieveUpdateDestroyTransactionAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset=Transactions.objects.all()
+    serializer_class=TransactionSerializer
     permission_classes=[IsAuthenticated]
