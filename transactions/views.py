@@ -3,7 +3,7 @@ from .models import Categories,Types,Transactions
 from .serializers import CategorySerializer,TypeSerializer,TransactionSerializer
 from rest_framework.permissions import IsAuthenticated
 
-
+#Categories
 class CreateCategoryAPIView(generics.CreateAPIView):
     queryset=Categories.objects.all()
     serializer_class=CategorySerializer
@@ -22,6 +22,7 @@ class RetrieveUpdateDestroyCategoryAPIView(generics.RetrieveUpdateDestroyAPIView
     permission_classes=[IsAuthenticated]
 
 
+#Types
 class CreateTypeAPIView(generics.CreateAPIView):
     queryset=Types.objects.all()
     serializer_class=TypeSerializer
@@ -40,6 +41,7 @@ class RetrieveUpdateDestroyTypeAPIView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes=[IsAuthenticated]
 
 
+#Transactions
 class CreateTransactionAPIView(generics.CreateAPIView):
     queryset=Transactions.objects.all()
     serializer_class=TransactionSerializer
