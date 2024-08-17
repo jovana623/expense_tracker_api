@@ -65,15 +65,13 @@ class RetrieveUpdateDestroyTransactionAPIView(generics.RetrieveUpdateDestroyAPIV
 
 class IncomeTransactionsAPIView(generics.ListAPIView):
     serializer_class=TransactionSerializer
-    permission_classes=[IsAuthenticated]
-
+    
     def get_queryset(self):
         return Transactions.objects.filter(type__category__name='Income',user=self.request.user)
     
 
 class ExpenseTransactionsAPIView(generics.ListAPIView):
     serializer_class=TransactionSerializer
-    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
         return Transactions.objects.filter(type__category__name='Expense',user=self.request.user)
