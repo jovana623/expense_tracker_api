@@ -10,13 +10,23 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class TypeSerializer(serializers.ModelSerializer):
-
+    category=CategorySerializer()
+    
     class Meta:
         model=Types
         fields=['id','name','color','category']
 
 
 class TransactionSerializer(serializers.ModelSerializer):
+    type = serializers.PrimaryKeyRelatedField(queryset=Types.objects.all())
+
+    class Meta:
+        model=Transactions
+        fields=['id','name','date','amount','type','description']
+
+
+class TransactionReadSerializer(serializers.ModelSerializer):
+    type=TypeSerializer()
 
     class Meta:
         model=Transactions

@@ -1,6 +1,6 @@
 from rest_framework import generics
 from .models import Categories,Types,Transactions
-from .serializers import CategorySerializer,TypeSerializer,TransactionSerializer
+from .serializers import CategorySerializer,TypeSerializer,TransactionSerializer,TransactionReadSerializer
 from rest_framework.permissions import IsAuthenticated
 
 #Categories
@@ -53,7 +53,7 @@ class CreateTransactionAPIView(generics.CreateAPIView):
 
 class TransactionsListAPIView(generics.ListAPIView):
     queryset=Transactions.objects.all()
-    serializer_class=TransactionSerializer
+    serializer_class=TransactionReadSerializer
     permission_classes=[IsAuthenticated]
 
 
@@ -64,14 +64,14 @@ class RetrieveUpdateDestroyTransactionAPIView(generics.RetrieveUpdateDestroyAPIV
 
 
 class IncomeTransactionsAPIView(generics.ListAPIView):
-    serializer_class=TransactionSerializer
+    serializer_class=TransactionReadSerializer
     
     def get_queryset(self):
-        return Transactions.objects.filter(type__category__name='Income',user=self.request.user)
+        return Transactions.objects.filter(type__category__name='Income')
     
 
 class ExpenseTransactionsAPIView(generics.ListAPIView):
-    serializer_class=TransactionSerializer
+    serializer_class=TransactionReadSerializer
 
     def get_queryset(self):
-        return Transactions.objects.filter(type__category__name='Expense',user=self.request.user)
+        return Transactions.objects.filter(type__category__name='Expense')
