@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.db.models.signals import post_save,post_delete
+from django.dispatch import receiver
 import datetime
 
 User=get_user_model()
@@ -20,6 +22,7 @@ class Savings(models.Model):
     status=models.CharField(max_length=50,choices=TypeStatus.choices)
     color=models.CharField(max_length=7)
     description=models.TextField()
+    
 
     def __str__(self):
         return self.name
@@ -28,6 +31,15 @@ class Savings(models.Model):
 class Payments(models.Model):
     amount=models.DecimalField(max_digits=10,decimal_places=2)
     date=models.DateField(default=datetime.date.today)
-    saving=models.ForeignKey(Savings,on_delete=models.CASCADE,default=1)
+    saving=models.ForeignKey(Savings,on_delete=models.CASCADE,default=1,related_name='payments')
+
+
+
+@receiver(post_save,sender=Payments)
+@receiver(post_delete,sender=Payments)
+def update_saving_amount(sender,instance,**kwargs):
+    savings=instance.saving
+    savings.amount=savings.payments.aggregate(total=models.Sum('amount'))['total'] or 0
+    savings.save()
 
     

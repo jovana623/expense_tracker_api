@@ -1,6 +1,6 @@
 from rest_framework import generics
 from .models import Categories,Types,Transactions
-from .serializers import CategorySerializer,TypeSerializer,TransactionSerializer,TransactionReadSerializer
+from .serializers import CategorySerializer,TypeSerializer,TransactionSerializer,TransactionReadSerializer,TypeReadSerializer
 from rest_framework.permissions import AllowAny
 from django.utils import timezone
 
@@ -32,7 +32,7 @@ class CreateTypeAPIView(generics.CreateAPIView):
 
 class TypesListAPIView(generics.ListAPIView):
     queryset=Types.objects.all()
-    serializer_class=TypeSerializer
+    serializer_class=TypeReadSerializer
     permission_classes=[AllowAny]
 
 
