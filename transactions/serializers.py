@@ -35,7 +35,7 @@ class TransactionSerializer(serializers.ModelSerializer):
 
 
 class TransactionReadSerializer(serializers.ModelSerializer):
-    type=TypeSerializer()
+    type=TypeReadSerializer()
  
     class Meta:
         model=Transactions

@@ -59,14 +59,22 @@ class TransactionsListAPIView(generics.ListAPIView):
     def get_queryset(self):
         queryset=Transactions.objects.all()
         time=self.request.query_params.get('time')
+        filter_month=self.request.query_params.get('month')
 
-        current_time=timezone.now()
+       
+
+        if filter_month:
+            year,month=map(int,filter_month.split('-'))
+            queryset=queryset.filter(date__month=month,date__year=year)
+        elif time:
+            current_time=timezone.now()
+            if time=='year':
+                queryset=queryset.filter(date__year=current_time.year)
+            elif time=='month':
+                queryset=queryset.filter(date__month=current_time.month)
+
         
-        if time=='year':
-            queryset=queryset.filter(date__year=current_time.year)
-        elif time=='month':
-            queryset=queryset.filter(date__month=current_time.month)
-
+            
         return queryset
 
 
