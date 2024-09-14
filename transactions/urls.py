@@ -12,5 +12,6 @@ urlpatterns = [
     path('',views.TransactionsListAPIView.as_view(),name='transactions'),
     path('<int:pk>',views.RetrieveUpdateDestroyTransactionAPIView.as_view(),name='single_transaction'),
     path('income/',views.IncomeTransactionsAPIView.as_view(),name='income_transactions'),
-    path('expense/',views.ExpenseTransactionsAPIView.as_view(),name='expense_transactions')
+    path('expense/',views.ExpenseTransactionsAPIView.as_view(),name='expense_transactions'),
+    
 ]

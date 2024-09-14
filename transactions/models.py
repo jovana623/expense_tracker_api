@@ -29,6 +29,11 @@ class Transactions(models.Model):
     description=models.TextField(default="")
     type=models.ForeignKey(Types,on_delete=models.CASCADE)
 
+
+
+
+
+
     
     
 

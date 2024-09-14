@@ -39,7 +39,16 @@ class Payments(models.Model):
 @receiver(post_delete,sender=Payments)
 def update_saving_amount(sender,instance,**kwargs):
     savings=instance.saving
-    savings.amount=savings.payments.aggregate(total=models.Sum('amount'))['total'] or 0
-    savings.save()
+    total_amount=savings.payments.aggregate(total=models.Sum('amount'))['total'] or 0
+    savings.amount=total_amount
+
+    if total_amount>=savings.goal:
+        new_status=Savings.TypeStatus.completed
+    else:
+        new_status=Savings.TypeStatus.in_progress
+
+    if savings.status != new_status:
+        savings.status = new_status
+        savings.save()
 
     
