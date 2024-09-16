@@ -3,6 +3,7 @@ from .models import Categories,Types,Transactions
 from .serializers import CategorySerializer,TypeSerializer,TransactionSerializer,TransactionReadSerializer,TypeReadSerializer
 from rest_framework.permissions import AllowAny
 from django.utils import timezone
+from django.db.models import Q
 
 
 #Categories
@@ -62,6 +63,7 @@ class TransactionsListAPIView(generics.ListAPIView):
         time=self.request.query_params.get('time')
         filter_month=self.request.query_params.get('month')
         sort_by=self.request.query_params.get('sortBy')
+        search=self.request.query_params.get('search')
 
         if filter_month:
             year,month=map(int,filter_month.split('-'))
@@ -83,6 +85,9 @@ class TransactionsListAPIView(generics.ListAPIView):
             queryset=queryset.order_by("-date")
         elif sort_by=="date-asc":
             queryset=queryset.order_by("date")
+
+        if search:
+            queryset = queryset.filter(Q(name__icontains=search) | Q(description__icontains=search))
 
         return queryset
 
