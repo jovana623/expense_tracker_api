@@ -13,7 +13,7 @@ urlpatterns = [
     path('<int:pk>',views.RetrieveUpdateDestroyTransactionAPIView.as_view(),name='single_transaction'),
     path('income/',views.IncomeTransactionsAPIView.as_view(),name='income_transactions'),
     path('expense/',views.ExpenseTransactionsAPIView.as_view(),name='expense_transactions'),
-    path('income/monthly/',views.MonthlyIncomeAPIView.as_view(),name='monthly_income'),
-    path('expense/monthly/',views.MonthlyExpenseAPIView.as_view(),name='monthly_expenses')
+    path('income/monthly/',views.IncomeSummaryAPIView.as_view(),name='monthly_income'),
+    path('expense/monthly/',views.ExpenseSummaryAPIView.as_view(),name='monthly_expenses')
     
 ]

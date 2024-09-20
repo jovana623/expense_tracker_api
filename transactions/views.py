@@ -121,7 +121,7 @@ class ExpenseTransactionsAPIView(TransactionsListAPIView):
         return queryset.filter(type__category__name='Expense')
 
 
-class MonthlyIncomeAPIView(APIView):
+class IncomeSummaryAPIView(APIView):
     permission_classes=[AllowAny]
 
     def get(self,request):
@@ -129,23 +129,47 @@ class MonthlyIncomeAPIView(APIView):
             Transactions.objects
             .filter(type__category__name='Income')
             .values('date__year', 'date__month')
-            .annotate(total_income=Sum('amount'))
+            .annotate(total=Sum('amount'))
             .order_by('date__year', 'date__month')
         )
-        return Response(monthly_income)
+
+        yearly_income=(
+            Transactions.objects
+            .filter(type__category__name='Income')
+            .values('date__year')
+            .annotate(total=Sum('amount'))
+            .order_by('date__year')
+        )
+
+        return Response({
+            "monthly_income": list(monthly_income),
+            "yearly_income": list(yearly_income),
+        })
     
 
-class MonthlyExpenseAPIView(APIView):
+class ExpenseSummaryAPIView(APIView):
     permission_classes=[AllowAny]
 
     def get(self,request):
         monthly_expense=(
-            Transactions.objects.filter(type__category__name="Expense")
+            Transactions.objects
+            .filter(type__category__name="Expense")
             .values('date__year','date__month')
-            .annotate(total_expense=Sum('amount'))
+            .annotate(total=Sum('amount'))
             .order_by('date__year','date__month')
         )
 
-        return Response(monthly_expense)
+        yearly_expense=(
+            Transactions.objects
+            .filter(type__category__name='Expense')
+            .values('date__year')
+            .annotate(total=Sum('amount'))
+            .order_by('date__year')
+        )
+
+        return Response({
+            "monthly_expense": list(monthly_expense),
+            "yearly_expense": list(yearly_expense),
+        })
     
 
