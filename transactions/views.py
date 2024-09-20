@@ -4,6 +4,10 @@ from .serializers import CategorySerializer,TypeSerializer,TransactionSerializer
 from rest_framework.permissions import AllowAny
 from django.utils import timezone
 from django.db.models import Q
+from .pagination import CustomPageNumberPagination
+from rest_framework.views import APIView
+from django.db.models import Sum
+from rest_framework.response import Response
 
 
 #Categories
@@ -57,6 +61,7 @@ class CreateTransactionAPIView(generics.CreateAPIView):
 class TransactionsListAPIView(generics.ListAPIView):
     serializer_class=TransactionReadSerializer
     permission_classes=[AllowAny]
+    pagination_class=CustomPageNumberPagination
 
     def get_queryset(self):
         queryset = Transactions.objects.all()
@@ -114,5 +119,33 @@ class ExpenseTransactionsAPIView(TransactionsListAPIView):
     def get_queryset(self):
         queryset=super().get_queryset()
         return queryset.filter(type__category__name='Expense')
+
+
+class MonthlyIncomeAPIView(APIView):
+    permission_classes=[AllowAny]
+
+    def get(self,request):
+        monthly_income = (
+            Transactions.objects
+            .filter(type__category__name='Income')
+            .values('date__year', 'date__month')
+            .annotate(total_income=Sum('amount'))
+            .order_by('date__year', 'date__month')
+        )
+        return Response(monthly_income)
+    
+
+class MonthlyExpenseAPIView(APIView):
+    permission_classes=[AllowAny]
+
+    def get(self,request):
+        monthly_expense=(
+            Transactions.objects.filter(type__category__name="Expense")
+            .values('date__year','date__month')
+            .annotate(total_expense=Sum('amount'))
+            .order_by('date__year','date__month')
+        )
+
+        return Response(monthly_expense)
     
 
