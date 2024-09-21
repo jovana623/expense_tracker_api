@@ -173,3 +173,22 @@ class ExpenseSummaryAPIView(APIView):
         })
     
 
+class CategoryByMonthAPIView(APIView):
+    permission_classes=[AllowAny]
+
+    def get(self,request):
+        type_name=self.request.query_params.get("type")
+        queryset=Transactions.objects.all()
+
+        if(type_name):
+            queryset=queryset.filter(type__name=type_name)
+
+        monthly_spending=(
+            queryset
+            .values('type__name','date__year','date__month')
+            .annotate(total=Sum('amount'))
+            .order_by('date__year','date__month','type__name')
+            )
+        
+        return Response(list(monthly_spending))
+

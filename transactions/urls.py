@@ -14,6 +14,7 @@ urlpatterns = [
     path('income/',views.IncomeTransactionsAPIView.as_view(),name='income_transactions'),
     path('expense/',views.ExpenseTransactionsAPIView.as_view(),name='expense_transactions'),
     path('income/monthly/',views.IncomeSummaryAPIView.as_view(),name='monthly_income'),
-    path('expense/monthly/',views.ExpenseSummaryAPIView.as_view(),name='monthly_expenses')
+    path('expense/monthly/',views.ExpenseSummaryAPIView.as_view(),name='monthly_expenses'),
+    path('spending/month/',views.CategoryByMonthAPIView.as_view(),name='category_month')
     
 ]
