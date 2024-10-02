@@ -201,6 +201,19 @@ class StatisticsAPIView(TransactionsListAPIView):
         top_income = querysetIncome.order_by('-amount').first()
         avg_income=querysetIncome.aggregate(avg_income=Avg('amount'))
 
+        top_income_types=(querysetIncome
+        .values('type__name')
+        .annotate(total_amount=Sum('amount'))
+        .order_by('-total_amount')[:4]
+        )
+
+        top_expense_types=(querysetExpense
+        .values('type__name')
+        .annotate(total_amount=Sum('amount'))
+        .order_by('-total_amount')[:3]
+        )
+        
+
         top_expense = querysetExpense.order_by('-amount').first()
         avg_expense=querysetExpense.aggregate(avg_expense=Avg('amount'))
 
@@ -217,4 +230,6 @@ class StatisticsAPIView(TransactionsListAPIView):
                 "date": top_expense.date if top_expense else None,
             },
             "avg_expense": avg_expense["avg_expense"],
+            "top_income_types":list(top_income_types),
+            "top_expense_types":list(top_expense_types)
         })
