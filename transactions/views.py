@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.db.models import Q
 from .pagination import CustomPageNumberPagination
 from rest_framework.views import APIView
-from django.db.models import Sum
+from django.db.models import Sum,Avg
 from rest_framework.response import Response
 
 
@@ -58,7 +58,7 @@ class CreateTransactionAPIView(generics.CreateAPIView):
         #serializer.save(user=self.request.user)
 
 
-class TransactionsListAPIView(generics.ListAPIView):
+class TransactionsListAPIView(generics.ListAPIView): 
     serializer_class=TransactionReadSerializer
     permission_classes=[AllowAny]
     pagination_class=CustomPageNumberPagination
@@ -192,3 +192,29 @@ class CategoryByMonthAPIView(APIView):
         
         return Response(list(monthly_spending))
 
+
+class StatisticsAPIView(TransactionsListAPIView):
+    def get(self,request,*args,**kwargs):
+        querysetIncome=self.get_queryset().filter(type__category__name='Income')
+        querysetExpense=self.get_queryset().filter(type__category__name='Expense')
+        
+        top_income = querysetIncome.order_by('-amount').first()
+        avg_income=querysetIncome.aggregate(avg_income=Avg('amount'))
+
+        top_expense = querysetExpense.order_by('-amount').first()
+        avg_expense=querysetExpense.aggregate(avg_expense=Avg('amount'))
+
+        return Response({
+            "top_income": {
+                "name": top_income.name if top_income else None,
+                "amount": top_income.amount if top_income else None,
+                "date": top_income.date if top_income else None,
+            },
+            "avg_income": avg_income["avg_income"],
+            "top_expense": {
+                "name": top_expense.name if top_expense else None,
+                "amount": top_expense.amount if top_expense else None,
+                "date": top_expense.date if top_expense else None,
+            },
+            "avg_expense": avg_expense["avg_expense"],
+        })

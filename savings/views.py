@@ -4,12 +4,13 @@ from .serializers import SavingSerializer,PaymentsSerializer
 from rest_framework.permissions import AllowAny
 
 
+
 #Savings
 class CreateSavingAPIView(generics.CreateAPIView):
     queryset=Savings.objects.all()
     serializer_class=SavingSerializer
     permission_classes=[AllowAny]
-
+    
     #def perform_create(self, serializer):
         #serializer.save(user=self.request.user)
 
@@ -24,6 +25,7 @@ class RetrieveUpdateDestroySavingAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset=Savings.objects.all()
     serializer_class=SavingSerializer
     permission_classes=[AllowAny]
+
 
 
 #Payments

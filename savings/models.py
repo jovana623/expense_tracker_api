@@ -19,6 +19,7 @@ class Savings(models.Model):
     amount=models.DecimalField(max_digits=10,decimal_places=2,default=0)
     goal=models.DecimalField(max_digits=10,decimal_places=2)
     target_date=models.DateField()
+    started_at=models.DateField(default=datetime.date(2024, 1, 1))
     status=models.CharField(max_length=50,choices=TypeStatus.choices)
     color=models.CharField(max_length=7)
     description=models.TextField()
@@ -49,6 +50,6 @@ def update_saving_amount(sender,instance,**kwargs):
 
     if savings.status != new_status:
         savings.status = new_status
-        savings.save()
+    savings.save()
 
     

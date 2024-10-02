@@ -13,6 +13,6 @@ class SavingSerializer(serializers.ModelSerializer):
     
     class Meta:
         model=Savings
-        fields=['id','name','amount','goal','target_date','status','description','color','payments']
+        fields=['id','name','amount','goal','target_date','started_at','status','description','color','payments']
 
 
