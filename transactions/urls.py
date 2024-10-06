@@ -16,6 +16,9 @@ urlpatterns = [
     path('income/monthly/',views.IncomeSummaryAPIView.as_view(),name='monthly_income'),
     path('expense/monthly/',views.ExpenseSummaryAPIView.as_view(),name='monthly_expenses'),
     path('spending/month/',views.CategoryByMonthAPIView.as_view(),name='category_month'),
-    path('statistics/',views.StatisticsAPIView.as_view(),name='statistics')
-    
+    path('statistics/',views.StatisticsAPIView.as_view(),name='statistics'),
+    path('budget/create/',views.CreateBudgetAPIView.as_view(),name='create_budget'),
+    path('budget/',views.ListBudgetAPIView.as_view(),name='budget'),
+    path('budget/<int:pk>',views.RetrieveUpdateDestroyBudgetAPIView.as_view(),name='single_budget'),
+    path('budget/used/',views.BudgetList.as_view(),name='used_budget')
 ]

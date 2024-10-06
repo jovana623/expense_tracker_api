@@ -31,12 +31,19 @@ class Transactions(models.Model):
 
 
 
+class Budget(models.Model):
 
+    class Period(models.TextChoices):
+        monthly='Monthly'
+        yearly="Yearly"
 
+    user=models.ForeignKey(User,on_delete=models.CASCADE,default=2)
+    type=models.ForeignKey(Types,on_delete=models.CASCADE)
+    amount=models.DecimalField(max_digits=10,decimal_places=2)
+    date=models.DateField(default=datetime.date.today)
+    period=models.CharField(max_length=10,choices=Period.choices)
 
+    def __str__(self):
+        return f"{self.user} - {self.type.name} - {self.period}"
 
-
-
-    
-    
-
+  

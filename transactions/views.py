@@ -1,6 +1,6 @@
 from rest_framework import generics
-from .models import Categories,Types,Transactions
-from .serializers import CategorySerializer,TypeSerializer,TransactionSerializer,TransactionReadSerializer,TypeReadSerializer
+from .models import Categories,Types,Transactions,Budget
+from .serializers import CategorySerializer,TypeSerializer,TransactionSerializer,TransactionReadSerializer,TypeReadSerializer,BudgetSerializer
 from rest_framework.permissions import AllowAny
 from django.utils import timezone
 from django.db.models import Q
@@ -233,3 +233,55 @@ class StatisticsAPIView(TransactionsListAPIView):
             "top_income_types":list(top_income_types),
             "top_expense_types":list(top_expense_types)
         })
+    
+
+#Budget
+class CreateBudgetAPIView(generics.CreateAPIView):
+    queryset=Budget.objects.all()
+    serializer_class=BudgetSerializer
+    permission_classes=[AllowAny]
+
+
+class ListBudgetAPIView(generics.ListAPIView):
+    queryset=Budget.objects.all()
+    serializer_class=BudgetSerializer
+    permission_classes=[AllowAny]
+
+
+class RetrieveUpdateDestroyBudgetAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset=Budget.objects.all()
+    serializer_class=BudgetSerializer
+    permission_classes=[AllowAny]
+
+
+class BudgetList(APIView):
+    def get(self,request):
+        period=self.request.query_params.get("period")
+        current_time=timezone.now()
+        budgets=Budget.objects.all()
+        budget_data=[]
+
+        for budget in budgets:
+            if period=='yearly':
+                transactions=Transactions.objects.filter(
+                    type=budget.type.id,
+                    date__year=current_time.year
+                )
+            else:
+                transactions=Transactions.objects.filter(
+                    type_id=budget.type.id,
+                    date__year=current_time.year,
+                    date__month=current_time.month
+                )
+
+            total_spent=transactions.aggregate(total=Sum('amount'))['total'] or 0
+            percentage_used = (total_spent / budget.amount) * 100 if budget.amount > 0 else 0
+
+            budget_data.append({
+                "type": budget.type.name,
+                "budget": budget.amount,
+                "total": total_spent,
+                "percentage": percentage_used
+            })
+
+        return Response(budget_data)
