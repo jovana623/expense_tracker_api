@@ -277,11 +277,18 @@ class BudgetList(APIView):
             total_spent=transactions.aggregate(total=Sum('amount'))['total'] or 0
             percentage_used = (total_spent / budget.amount) * 100 if budget.amount > 0 else 0
 
+            transaction_list = transactions.values(
+                'id', 'name', 'amount', 'date', 'description'
+            )
+
             budget_data.append({
+                "id":budget.id,
                 "type": budget.type.name,
-                "budget": budget.amount,
+                "amount": budget.amount,
                 "total": total_spent,
-                "percentage": percentage_used
+                "percentage": percentage_used,
+                "period":budget.period,
+                "transactions": list(transaction_list)
             })
 
         return Response(budget_data)
