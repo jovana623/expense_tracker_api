@@ -256,13 +256,13 @@ class RetrieveUpdateDestroyBudgetAPIView(generics.RetrieveUpdateDestroyAPIView):
 
 class BudgetList(APIView):
     def get(self,request):
-        period=self.request.query_params.get("period")
+        
         current_time=timezone.now()
         budgets=Budget.objects.all()
-        budget_data=[]
+        budget_data=[] 
 
         for budget in budgets:
-            if period=='yearly':
+            if budget.period=='Yearly':
                 transactions=Transactions.objects.filter(
                     type=budget.type.id,
                     date__year=current_time.year

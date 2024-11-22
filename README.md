@@ -2,8 +2,6 @@
 
 This is the backend for the **Expense Tracker App**, built with **Django Rest Framework (DRF)** and **PostgreSQL**. The API provides comprehensive tools to manage personal finances, including tracking income and expenses, setting savings goals, creating budgets, and generating financial insights.
 
----
-
 ## 📑 Table of Contents
 
 - [🔗 Frontend Repository](#-frontend-repository)
@@ -13,14 +11,10 @@ This is the backend for the **Expense Tracker App**, built with **Django Rest Fr
 - [🔧 Installation](#-installation)
 - [📚 API Documentation](#-api-documentation)
 
----
-
 ## 🔗 **Frontend Repository**
 
 The frontend for this application is located in a separate repository. You can access it here:  
 👉 [Frontend Repository Link](https://github.com/jovana623/expense-tracker)
-
----
 
 ## 📋 Features and Functionality
 
@@ -45,15 +39,11 @@ The frontend for this application is located in a separate repository. You can a
   - Secure user login with token-based authentication (JWT).
   - Authentication endpoints are set up, but the frontend is not yet integrated.
 
----
-
 ## 🛠️ Technologies Used
 
 - **Backend Framework**: Django Rest Framework (DRF)
 - **Database**: PostgreSQL
 - **Authentication**: JSON Web Tokens (JWT)
-
----
 
 ## 💾 Database Schema
 
@@ -104,5 +94,3 @@ Below is the database schema for the Expense Tracker App:
 
 - `GET /statistics/`  
   View financial summaries (e.g., top income/expense types, averages).
-
----

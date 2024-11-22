@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 import datetime
-
+ 
 User=get_user_model()
 
 class Categories(models.Model):
@@ -30,9 +30,8 @@ class Transactions(models.Model):
     type=models.ForeignKey(Types,on_delete=models.CASCADE)
 
 
-
 class Budget(models.Model):
-
+ 
     class Period(models.TextChoices):
         monthly='Monthly'
         yearly="Yearly"
@@ -46,4 +45,4 @@ class Budget(models.Model):
     def __str__(self):
         return f"{self.user} - {self.type.name} - {self.period}"
 
-  
+   

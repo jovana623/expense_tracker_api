@@ -52,4 +52,4 @@ def update_saving_amount(sender,instance,**kwargs):
         savings.status = new_status
     savings.save()
 
-    
+      
