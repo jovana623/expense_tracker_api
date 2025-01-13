@@ -25,7 +25,7 @@ class RetrieveUpdateDestroySavingAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset=Savings.objects.all()
     serializer_class=SavingSerializer
     permission_classes=[AllowAny]
-
+ 
 
 
 #Payments
