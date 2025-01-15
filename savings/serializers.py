@@ -15,4 +15,6 @@ class SavingSerializer(serializers.ModelSerializer):
         model=Savings
         fields=['id','name','amount','goal','target_date','started_at','status','description','color','payments']
 
+        read_only_fields = ['id', 'amount', 'payments']
+
 

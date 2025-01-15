@@ -1,6 +1,6 @@
 from rest_framework import generics
 from .models import Categories,Types,Transactions,Budget
-from .serializers import CategorySerializer,TypeSerializer,TransactionSerializer,TransactionReadSerializer,TypeReadSerializer,BudgetSerializer
+from .serializers import CategorySerializer,TypeSerializer,TransactionSerializer,TransactionReadSerializer,TypeReadSerializer,BudgetSerializer,BudgetReadSerializer
 from rest_framework.permissions import AllowAny
 from django.utils import timezone
 from django.db.models import Q
@@ -78,7 +78,7 @@ class TransactionsListAPIView(generics.ListAPIView):
             if time=='year':
                 queryset=queryset.filter(date__year=current_time.year)
             elif time=='month':
-                queryset=queryset.filter(date__month=current_time.month)
+                queryset=queryset.filter(date__month=current_time.month,date__year=current_time.year)
 
         if sort_by=='name':
             queryset=queryset.order_by('name')
@@ -256,20 +256,20 @@ class RetrieveUpdateDestroyBudgetAPIView(generics.RetrieveUpdateDestroyAPIView):
 
 class BudgetList(APIView):
     def get(self,request):
-        
+
         current_time=timezone.now()
-        budgets=Budget.objects.all()
+        budgets=Budget.objects.all() 
         budget_data=[] 
 
         for budget in budgets:
             if budget.period=='Yearly':
                 transactions=Transactions.objects.filter(
-                    type=budget.type.id,
+                    type=budget.type,
                     date__year=current_time.year
                 )
             else:
                 transactions=Transactions.objects.filter(
-                    type_id=budget.type.id,
+                    type=budget.type,
                     date__year=current_time.year,
                     date__month=current_time.month
                 )
@@ -281,13 +281,12 @@ class BudgetList(APIView):
                 'id', 'name', 'amount', 'date', 'description'
             )
 
+            serialized_budget=BudgetReadSerializer(budget).data
+
             budget_data.append({
-                "id":budget.id,
-                "type": budget.type.name,
-                "amount": budget.amount,
+                **serialized_budget,
                 "total": total_spent,
                 "percentage": percentage_used,
-                "period":budget.period,
                 "transactions": list(transaction_list)
             })
 

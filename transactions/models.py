@@ -36,7 +36,7 @@ class Transactions(models.Model):
 class Budget(models.Model):
  
     class Period(models.TextChoices):
-        monthly='Monthly'
+        monthly='Monthly' 
         yearly="Yearly"
 
     user=models.ForeignKey(User,on_delete=models.CASCADE,default=2)
