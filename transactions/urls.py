@@ -20,5 +20,7 @@ urlpatterns = [
     path('budget/create/',views.CreateBudgetAPIView.as_view(),name='create_budget'),
     path('budget/',views.ListBudgetAPIView.as_view(),name='budget'),
     path('budget/<int:pk>',views.RetrieveUpdateDestroyBudgetAPIView.as_view(),name='single_budget'),
-    path('budget/used/',views.BudgetList.as_view(),name='used_budget')
+    path('budget/used/',views.BudgetList.as_view(),name='used_budget'),
+    path('daily-balances/',views.DailyBalancesView.as_view(),name="daily_balance"),
+    path('monthly-balances',views.MonthlyBalance.as_view(),name='monthly_balances')
 ]
