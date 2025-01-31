@@ -310,6 +310,9 @@ class DailyBalancesView(APIView):
         if not first_date or not last_date:
             return Response([])
         
+        today=timezone.now().date()
+        last_date=max(last_date,today)
+        
         daily_totals=(
             Transactions.objects
             .values("date")
