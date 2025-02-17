@@ -11,7 +11,7 @@ class Categories(models.Model):
     name=models.CharField(max_length=255)
     color=models.CharField(max_length=7)
 
-    def __str__(self):
+    def __str__(self): 
         return self.name
     
 
@@ -25,7 +25,7 @@ class Types(models.Model):
 
 
 class Transactions(models.Model):
-    user=models.ForeignKey(User,on_delete=models.CASCADE,default=2)
+    user=models.ForeignKey(User,on_delete=models.CASCADE,default="")
     name=models.CharField(max_length=255)
     amount=models.DecimalField(max_digits=10,decimal_places=2)
     date=models.DateField(default=datetime.date.today)
@@ -39,7 +39,7 @@ class Budget(models.Model):
         monthly='Monthly' 
         yearly="Yearly"
 
-    user=models.ForeignKey(User,on_delete=models.CASCADE,default=2)
+    user=models.ForeignKey(User,on_delete=models.CASCADE,default="")
     type=models.ForeignKey(Types,on_delete=models.CASCADE)
     amount=models.DecimalField(max_digits=10,decimal_places=2)
     date=models.DateField(default=datetime.date.today)
@@ -48,7 +48,7 @@ class Budget(models.Model):
     def __str__(self):
         return f"{self.user} - {self.type.name} - {self.period}"
     
-
+ 
 @receiver(post_save,sender=Payments)
 def create_transaction_for_payments(sender,instance,**kwargs):
     saving=instance.saving

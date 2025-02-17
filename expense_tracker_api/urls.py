@@ -23,3 +23,4 @@ urlpatterns = [
     path('api/transactions/',include('transactions.urls')),
     path('api/savings/',include('savings.urls'))
 ]
+  

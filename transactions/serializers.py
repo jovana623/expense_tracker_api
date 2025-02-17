@@ -39,14 +39,14 @@ class TransactionReadSerializer(serializers.ModelSerializer):
  
     class Meta:
         model=Transactions
-        fields=['id','name','date','amount','type','description']
+        fields=['id','name','date','amount','type','description','user']
 
 
 class BudgetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model=Budget
-        fields=['id','type','amount','date','period'] 
+        fields=['id','type','amount','date','period','user'] 
 
 
 class BudgetReadSerializer(serializers.ModelSerializer):
@@ -54,4 +54,4 @@ class BudgetReadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model=Budget
-        fields=['id','type','amount','date','period'] 
+        fields=['id','type','amount','date','period','user'] 

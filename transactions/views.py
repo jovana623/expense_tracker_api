@@ -1,7 +1,7 @@
 from rest_framework import generics
 from .models import Categories,Types,Transactions,Budget
 from .serializers import CategorySerializer,TypeSerializer,TransactionSerializer,TransactionReadSerializer,TypeReadSerializer,BudgetSerializer,BudgetReadSerializer
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny,IsAuthenticated
 from django.utils import timezone
 from django.db.models import Q,Min,Max
 from .pagination import CustomPageNumberPagination
@@ -54,19 +54,19 @@ class RetrieveUpdateDestroyTypeAPIView(generics.RetrieveUpdateDestroyAPIView):
 class CreateTransactionAPIView(generics.CreateAPIView):
     queryset=Transactions.objects.all()
     serializer_class=TransactionSerializer
-    permission_classes=[AllowAny]
+    permission_classes=[IsAuthenticated]
 
-    #def perform_create(self, serializer):
-        #serializer.save(user=self.request.user)
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 class TransactionsListAPIView(generics.ListAPIView): 
     serializer_class=TransactionReadSerializer
-    permission_classes=[AllowAny]
+    permission_classes=[IsAuthenticated]
     pagination_class=CustomPageNumberPagination
 
     def get_queryset(self):
-        queryset = Transactions.objects.all()
+        queryset = Transactions.objects.filter(user=self.request.user)
         time=self.request.query_params.get('time')
         filter_month=self.request.query_params.get('month')
         sort_by=self.request.query_params.get('sortBy')
@@ -102,12 +102,12 @@ class TransactionsListAPIView(generics.ListAPIView):
 class RetrieveUpdateDestroyTransactionAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset=Transactions.objects.all()
     serializer_class=TransactionSerializer
-    permission_classes=[AllowAny]
+    permission_classes=[IsAuthenticated]
 
 
 class IncomeTransactionsAPIView(TransactionsListAPIView):
     serializer_class=TransactionReadSerializer
-    permission_classes=[AllowAny]
+    permission_classes=[IsAuthenticated]
     
     def get_queryset(self):
         queryset=super().get_queryset()
@@ -116,7 +116,7 @@ class IncomeTransactionsAPIView(TransactionsListAPIView):
 
 class ExpenseTransactionsAPIView(TransactionsListAPIView):
     serializer_class=TransactionReadSerializer
-    permission_classes=[AllowAny]
+    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
         queryset=super().get_queryset()
@@ -124,7 +124,7 @@ class ExpenseTransactionsAPIView(TransactionsListAPIView):
 
 
 class IncomeSummaryAPIView(APIView):
-    permission_classes=[AllowAny]
+    permission_classes=[IsAuthenticated]
 
     def get(self,request):
         monthly_income = (
@@ -150,7 +150,7 @@ class IncomeSummaryAPIView(APIView):
     
 
 class ExpenseSummaryAPIView(APIView):
-    permission_classes=[AllowAny]
+    permission_classes=[IsAuthenticated]
 
     def get(self,request):
         monthly_expense=(
@@ -176,7 +176,7 @@ class ExpenseSummaryAPIView(APIView):
     
 
 class CategoryByMonthAPIView(APIView):
-    permission_classes=[AllowAny]
+    permission_classes=[IsAuthenticated]
 
     def get(self,request):
         type_name=self.request.query_params.get("type")
@@ -239,41 +239,47 @@ class StatisticsAPIView(TransactionsListAPIView):
 
 #Budget
 class CreateBudgetAPIView(generics.CreateAPIView):
-    queryset=Budget.objects.all()
     serializer_class=BudgetSerializer
-    permission_classes=[AllowAny]
+    permission_classes=[IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 class ListBudgetAPIView(generics.ListAPIView):
-    queryset=Budget.objects.all()
     serializer_class=BudgetSerializer
     permission_classes=[AllowAny]
+
+    def get_queryset(self):
+        return Budget.objects.filter(user=self.request.user)
 
 
 class RetrieveUpdateDestroyBudgetAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset=Budget.objects.all()
     serializer_class=BudgetSerializer
-    permission_classes=[AllowAny]
+    permission_classes=[IsAuthenticated]
 
 
 class BudgetList(APIView):
+    permission_classes=[AllowAny]
     def get(self,request):
-
         current_time=timezone.now()
-        budgets=Budget.objects.all() 
+        budgets=Budget.objects.filter(user=self.request.user)
         budget_data=[] 
 
         for budget in budgets:
             if budget.period=='Yearly':
                 transactions=Transactions.objects.filter(
                     type=budget.type,
-                    date__year=current_time.year
+                    date__year=current_time.year,
+                    user=self.request.user
                 )
             else:
                 transactions=Transactions.objects.filter(
                     type=budget.type,
                     date__year=current_time.year,
-                    date__month=current_time.month
+                    date__month=current_time.month,
+                    user=self.request.user
                 )
 
             total_spent=transactions.aggregate(total=Sum('amount'))['total'] or 0
@@ -297,9 +303,11 @@ class BudgetList(APIView):
 
 #Balance
 class DailyBalancesView(APIView):
+    permission_classes=[IsAuthenticated]
     
     def get(self,request,*args,**kwargs):
-        min_max_dates=Transactions.objects.aggregate(
+        user_transactions=Transactions.objects.filter(user=request.user)
+        min_max_dates=user_transactions.aggregate(
             first_date=Min("date"),
             last_date=Max("date")
         )
@@ -314,7 +322,7 @@ class DailyBalancesView(APIView):
         last_date=max(last_date,today)
         
         daily_totals=(
-            Transactions.objects
+            user_transactions
             .values("date")
             .annotate(
                 daily_income=Sum(
@@ -379,9 +387,11 @@ class DailyBalancesView(APIView):
 
 
 class MonthlyBalance(APIView):
+    permission_classes=[IsAuthenticated]
 
     def get(self,request,*args,**kwargs):
-        min_max_dates=Transactions.objects.aggregate(
+        user_transactions = Transactions.objects.filter(user=request.user)
+        min_max_dates=user_transactions.aggregate(
             first_date=Min("date"),
             last_date=Max("date")
         )
@@ -393,7 +403,7 @@ class MonthlyBalance(APIView):
             return Response([])
         
         monthly_totals=(
-            Transactions.objects
+            user_transactions
             .annotate(
                 month=TruncMonth('date')
             )

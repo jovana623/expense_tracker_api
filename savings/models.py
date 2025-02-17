@@ -12,9 +12,9 @@ class Savings(models.Model):
     class TypeStatus(models.TextChoices):
         in_progress='In progress'
         completed='Completed'
-        on_hold='On hold'
+        on_hold='On hold' 
 
-    user=models.ForeignKey(User,on_delete=models.CASCADE,default=2)
+    user=models.ForeignKey(User,on_delete=models.CASCADE,default="")
     name=models.CharField(max_length=255)
     amount=models.DecimalField(max_digits=10,decimal_places=2,default=0)
     goal=models.DecimalField(max_digits=10,decimal_places=2)

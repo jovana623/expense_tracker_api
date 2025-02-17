@@ -24,3 +24,4 @@ urlpatterns = [
     path('daily-balances/',views.DailyBalancesView.as_view(),name="daily_balance"),
     path('monthly-balances',views.MonthlyBalance.as_view(),name='monthly_balances')
 ]
+ 
