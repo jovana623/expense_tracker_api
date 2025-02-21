@@ -23,7 +23,7 @@ class CategoriesListAPIView(generics.ListAPIView):
     queryset=Categories.objects.all()
     serializer_class=CategorySerializer
     permission_classes=[AllowAny]
-
+ 
 
 class RetrieveUpdateDestroyCategoryAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset=Categories.objects.all()
@@ -42,7 +42,7 @@ class TypesListAPIView(generics.ListAPIView):
     queryset=Types.objects.all()
     serializer_class=TypeReadSerializer
     permission_classes=[AllowAny]
-
+ 
 
 class RetrieveUpdateDestroyTypeAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset=Types.objects.all()
@@ -64,7 +64,7 @@ class TransactionsListAPIView(generics.ListAPIView):
     serializer_class=TransactionReadSerializer
     permission_classes=[IsAuthenticated]
     pagination_class=CustomPageNumberPagination
-
+   
     def get_queryset(self):
         queryset = Transactions.objects.filter(user=self.request.user)
         time=self.request.query_params.get('time')
@@ -72,7 +72,7 @@ class TransactionsListAPIView(generics.ListAPIView):
         sort_by=self.request.query_params.get('sortBy')
         search=self.request.query_params.get('search')
 
-        if filter_month:
+        if filter_month: 
             year,month=map(int,filter_month.split('-'))
             queryset=queryset.filter(date__month=month,date__year=year)
         elif time:
