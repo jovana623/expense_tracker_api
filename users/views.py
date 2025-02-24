@@ -10,6 +10,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .permissions import IsStuffUser
 import os
 from django.conf import settings
+from transactions.models import Transactions,Budget
+from savings.models import Savings
+from django.db import transaction
 
 User=get_user_model()
 
@@ -105,3 +108,20 @@ class DeleteCurrentUserView(generics.DestroyAPIView):
         user=self.get_object()
         user.delete()
         return Response({"detail": "Your account has been deleted."}, status=status.HTTP_204_NO_CONTENT)
+    
+
+class ResetAccountView(APIView):
+    permission_classes=[IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+    
+    def delete(self,request):
+        user=self.get_object()
+        user=request.user
+
+        with transaction.atomic():
+            Transactions.objects.filter(user=user).delete()
+            Budget.objects.filter(user=user).delete()
+            Savings.objects.filter(user=user).delete()
+        return Response({"detail": "All user data has been deleted."}, status=status.HTTP_200_OK)
