@@ -2,7 +2,7 @@ from rest_framework import generics,parsers,status
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny,IsAuthenticated
 from django.contrib.auth import get_user_model
-from .serializers import RegisterSerializer,UserSerializer,CustomTokenObtainPairSerializer
+from .serializers import RegisterSerializer,UserSerializer,CustomTokenObtainPairSerializer,ChangePasswordSerializer
 from rest_framework.response import Response
 from django.db.models import Q
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -81,3 +81,15 @@ class RetrieveUpdateDestroyUserAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class=UserSerializer
     permission_classes=[IsStuffUser]  
     
+
+class ChangePasswordView(APIView):
+    permission_classes=[IsAuthenticated]
+
+    def post(self,request):
+        serializer=ChangePasswordSerializer(data=request.data,context={'request': request})
+        if serializer.is_valid():
+            user=request.user
+            user.set_password(serializer.validated_data['new_password'])
+            user.save()
+            return Response({"message": "Password changed successfully"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
