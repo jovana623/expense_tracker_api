@@ -93,3 +93,15 @@ class ChangePasswordView(APIView):
             user.save()
             return Response({"message": "Password changed successfully"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class DeleteCurrentUserView(generics.DestroyAPIView):
+    permission_classes=[IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+    
+    def delete(self,request,*args,**kwargs):
+        user=self.get_object()
+        user.delete()
+        return Response({"detail": "Your account has been deleted."}, status=status.HTTP_204_NO_CONTENT)

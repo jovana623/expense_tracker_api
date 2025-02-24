@@ -1,7 +1,7 @@
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
-from .views import RegisterView,LogoutView,CurrentUserView,CustomTokenObtainPairView,UserListAPIView,RetrieveUpdateDestroyUserAPIView,ChangePasswordView
+from .views import RegisterView,LogoutView,CurrentUserView,CustomTokenObtainPairView,UserListAPIView,RetrieveUpdateDestroyUserAPIView,ChangePasswordView,DeleteCurrentUserView
 
 
 urlpatterns = [
@@ -12,6 +12,7 @@ urlpatterns = [
     path('me/',CurrentUserView.as_view(),name='current_user'),
     path('',UserListAPIView.as_view(),name="users_list"),
     path('<int:pk>',RetrieveUpdateDestroyUserAPIView.as_view(),name="single_user"),
-    path('change_password/',ChangePasswordView.as_view(),name="change_password")
+    path('change_password/',ChangePasswordView.as_view(),name="change_password"),
+    path('delete-account/',DeleteCurrentUserView.as_view(),name="delete_account")
 ]
    
