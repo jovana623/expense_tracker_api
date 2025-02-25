@@ -6,10 +6,14 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 User=get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
+    currency_choices=serializers.SerializerMethodField()
     
-    class Meta:
+    class Meta: 
         model = User
-        fields = ['id', 'email', 'username', 'avatar', 'is_staff', 'is_superuser', 'is_active', 'created_at','last_login']
+        fields = ['id', 'email', 'username', 'avatar', 'is_staff', 'is_superuser', 'is_active', 'created_at','last_login','currency','currency_choices']
+
+    def get_currency_choices(self, obj):
+        return [{"code": code, "symbol": symbol} for code, symbol in User.CURRENCY_CHOICES]
 
 
 class RegisterSerializer(serializers.ModelSerializer):

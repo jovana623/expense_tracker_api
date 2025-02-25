@@ -26,14 +26,26 @@ class UserManager(BaseUserManager):
 
  
 class User(AbstractBaseUser,PermissionsMixin): 
+    CURRENCY_CHOICES = [
+        ("EUR", "Euro (€)"),
+        ("USD", "US Dollar ($)"),
+        ("GBP", "British Pound (£)"),
+        ("JPY", "Japanese Yen (¥)"),
+        ("AUD", "Australian Dollar (A$)"),
+        ("CAD", "Canadian Dollar (C$)"),
+        ("CHF", "Swiss Franc (CHF)"),
+        ("CNY", "Chinese Yuan (¥)"),
+        ("SEK", "Swedish Krona (kr)"),
+        ("NZD", "New Zealand Dollar (NZ$)"), 
+    ]
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=255)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     avatar = models.ImageField(upload_to="avatars/",blank=True,null=True)
-    last_login = models.DateTimeField(null=True, blank=True)  
+    last_login = models.DateTimeField(null=True, blank=True) 
+    currency=models.CharField(max_length=3,choices=CURRENCY_CHOICES,default="EUR") 
 
     objects=UserManager()
  

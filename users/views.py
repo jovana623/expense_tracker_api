@@ -118,10 +118,27 @@ class ResetAccountView(APIView):
     
     def delete(self,request):
         user=self.get_object()
-        user=request.user
-
+        
         with transaction.atomic():
             Transactions.objects.filter(user=user).delete()
             Budget.objects.filter(user=user).delete()
             Savings.objects.filter(user=user).delete()
         return Response({"detail": "All user data has been deleted."}, status=status.HTTP_200_OK)
+    
+
+class UpdateCurrencyView(APIView):
+    permission_classes=[IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+    
+    def patch(self,request):
+        user=self.get_object()
+        new_currency = request.data.get("currency")
+
+        if new_currency not in dict(User.CURRENCY_CHOICES).keys():
+            return Response({"error": "Invalid currency."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user.currency=new_currency
+        user.save()
+        return Response({"currency": user.currency}, status=status.HTTP_200_OK)
