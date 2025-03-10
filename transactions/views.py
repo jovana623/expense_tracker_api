@@ -11,6 +11,8 @@ from rest_framework.response import Response
 from django.db.models.functions import TruncMonth
 from datetime import datetime,timedelta
 from dateutil.relativedelta import relativedelta
+from users.permissions import IsStuffUser
+from django.core.cache import cache
 
 #Categories
 class CreateCategoryAPIView(generics.CreateAPIView):
@@ -20,9 +22,19 @@ class CreateCategoryAPIView(generics.CreateAPIView):
 
 
 class CategoriesListAPIView(generics.ListAPIView):
-    queryset=Categories.objects.all()
     serializer_class=CategorySerializer
     permission_classes=[AllowAny]
+
+    def get_queryset(self):
+        cache_key="categories_list"
+        cached_data=cache.get(cache_key)
+
+        if cached_data is not None:
+            return cached_data
+        
+        queryset=Categories.objects.all()
+        cache.set(cache_key,queryset,timeout=60*60*24)
+        return queryset
  
 
 class RetrieveUpdateDestroyCategoryAPIView(generics.RetrieveUpdateDestroyAPIView):
@@ -35,19 +47,52 @@ class RetrieveUpdateDestroyCategoryAPIView(generics.RetrieveUpdateDestroyAPIView
 class CreateTypeAPIView(generics.CreateAPIView):
     queryset=Types.objects.all()
     serializer_class=TypeSerializer
-    permission_classes=[AllowAny]
+    permission_classes=[IsStuffUser]
+
+    def perform_create(self, serializer):
+        instance=serializer.save()
+        cache.delete("types_list")
+        return instance
+
+
+class UpdateDestroyTypeAPIView(generics.UpdateAPIView,generics.DestroyAPIView):
+    queryset=Types.objects.all()
+    serializer_class=TypeSerializer
+    permission_classes=[IsStuffUser]
+
+    def perform_update(self, serializer):
+        instance=serializer.save()
+        cache.delete("types_list")
+        return instance
+    
+    def perform_destroy(self, instance):
+        instance.delete()
+        cache.delete("types_list")
 
 
 class TypesListAPIView(generics.ListAPIView):
-    queryset=Types.objects.all()
     serializer_class=TypeReadSerializer
     permission_classes=[AllowAny]
- 
 
-class RetrieveUpdateDestroyTypeAPIView(generics.RetrieveUpdateDestroyAPIView):
-    queryset=Types.objects.all()
-    serializer_class=TypeSerializer
-    permission_classes=[AllowAny]
+    def get_queryset(self):
+        cache_key="types_list"
+        cached_data=cache.get(cache_key)
+
+        if cached_data:
+            return cached_data
+        
+        queryset=Types.objects.all().select_related("category")
+        serializer=TypeReadSerializer(queryset,many=True)
+        serialized_data=serializer.data
+        cache.set(cache_key,serialized_data,timeout=60*60*24)
+        return serialized_data
+
+
+class RetrieveTypeAPIView(generics.RetrieveAPIView):
+    queryset = Types.objects.all()
+    serializer_class = TypeSerializer
+    permission_classes = [AllowAny]
+
 
 
 #Transactions
@@ -66,7 +111,7 @@ class TransactionsListAPIView(generics.ListAPIView):
     pagination_class=CustomPageNumberPagination
    
     def get_queryset(self):
-        queryset = Transactions.objects.filter(user=self.request.user)
+        queryset = Transactions.objects.filter(user=self.request.user).select_related("user","type").prefetch_related("type__category")
         time=self.request.query_params.get('time')
         filter_month=self.request.query_params.get('month')
         sort_by=self.request.query_params.get('sortBy')
@@ -129,6 +174,7 @@ class IncomeSummaryAPIView(APIView):
     def get(self,request):
         monthly_income = (
             Transactions.objects
+            .select_related('type','type__category')
             .filter(type__category__name='Income')
             .values('date__year', 'date__month')
             .annotate(total=Sum('amount'))
@@ -137,6 +183,7 @@ class IncomeSummaryAPIView(APIView):
 
         yearly_income=(
             Transactions.objects
+            .select_related('type','type__category')
             .filter(type__category__name='Income')
             .values('date__year')
             .annotate(total=Sum('amount'))
@@ -155,6 +202,7 @@ class ExpenseSummaryAPIView(APIView):
     def get(self,request):
         monthly_expense=(
             Transactions.objects
+            .select_related('type','type__category')
             .filter(type__category__name="Expense")
             .values('date__year','date__month')
             .annotate(total=Sum('amount'))
@@ -163,6 +211,7 @@ class ExpenseSummaryAPIView(APIView):
 
         yearly_expense=(
             Transactions.objects
+            .select_related('type', 'type__category')
             .filter(type__category__name='Expense')
             .values('date__year')
             .annotate(total=Sum('amount'))
