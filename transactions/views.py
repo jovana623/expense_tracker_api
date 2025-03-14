@@ -14,6 +14,7 @@ from dateutil.relativedelta import relativedelta
 from users.permissions import IsStuffUser
 from django.core.cache import cache
 
+
 #Categories
 class CreateCategoryAPIView(generics.CreateAPIView):
     queryset=Categories.objects.all()
@@ -73,7 +74,7 @@ class UpdateDestroyTypeAPIView(generics.UpdateAPIView,generics.DestroyAPIView):
 class TypesListAPIView(generics.ListAPIView):
     serializer_class=TypeReadSerializer
     permission_classes=[AllowAny]
-
+ 
     def get_queryset(self):
         cache_key="types_list"
         cached_data=cache.get(cache_key)
@@ -94,7 +95,6 @@ class RetrieveTypeAPIView(generics.RetrieveAPIView):
     permission_classes = [AllowAny]
 
 
-
 #Transactions
 class CreateTransactionAPIView(generics.CreateAPIView):
     queryset=Transactions.objects.all()
@@ -102,7 +102,9 @@ class CreateTransactionAPIView(generics.CreateAPIView):
     permission_classes=[IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        transaction = serializer.save(user=self.request.user)
+        cache.delete(f"income_summary_{transaction.user.id}")
+        cache.delete(f"expense_summary_{transaction.user_id}")
 
 
 class TransactionsListAPIView(generics.ListAPIView): 
@@ -111,11 +113,12 @@ class TransactionsListAPIView(generics.ListAPIView):
     pagination_class=CustomPageNumberPagination
    
     def get_queryset(self):
-        queryset = Transactions.objects.filter(user=self.request.user).select_related("user","type").prefetch_related("type__category")
         time=self.request.query_params.get('time')
         filter_month=self.request.query_params.get('month')
-        sort_by=self.request.query_params.get('sortBy')
+        sort_by=self.request.query_params.get('sortBy') 
         search=self.request.query_params.get('search')
+        
+        queryset = Transactions.objects.filter(user=self.request.user).select_related("user", "type").prefetch_related("type__category")
 
         if filter_month: 
             year,month=map(int,filter_month.split('-'))
@@ -149,6 +152,17 @@ class RetrieveUpdateDestroyTransactionAPIView(generics.RetrieveUpdateDestroyAPIV
     serializer_class=TransactionSerializer
     permission_classes=[IsAuthenticated]
 
+    def perform_update(self, serializer):
+        transaction=serializer.save()
+        cache.delete(f"income_summary_{transaction.user.id}")
+        cache.delete(f"expense_summary_{transaction.user_id}")
+
+    def perform_destroy(self, instance):
+        user_id=instance.user.id
+        instance.delete()
+        cache.delete(f"income_summary_{user_id}")
+        cache.delete(f"expense_summary_{user_id}")
+
 
 class IncomeTransactionsAPIView(TransactionsListAPIView):
     serializer_class=TransactionReadSerializer
@@ -168,42 +182,61 @@ class ExpenseTransactionsAPIView(TransactionsListAPIView):
         return queryset.filter(type__category__name='Expense')
 
 
+
 class IncomeSummaryAPIView(APIView):
     permission_classes=[IsAuthenticated]
-
+    
     def get(self,request):
+        user_id=request.user.id
+        cache_key = f"income_summary_{user_id}"
+        cached_data=cache.get(cache_key)
+
+        if cached_data:
+            return Response(cached_data)
+        
         monthly_income = (
             Transactions.objects
             .select_related('type','type__category')
-            .filter(type__category__name='Income')
+            .filter(user=request.user, type__category__name='Income')
             .values('date__year', 'date__month')
             .annotate(total=Sum('amount'))
             .order_by('date__year', 'date__month')
         )
-
+ 
         yearly_income=(
             Transactions.objects
             .select_related('type','type__category')
-            .filter(type__category__name='Income')
+            .filter(user=request.user, type__category__name='Income')
             .values('date__year')
             .annotate(total=Sum('amount'))
             .order_by('date__year')
         )
 
-        return Response({
+        data={
             "monthly_income": list(monthly_income),
             "yearly_income": list(yearly_income),
-        })
+        }
+
+        cache.set(cache_key,data,timeout=60*10)
+
+        return Response(data)
     
 
 class ExpenseSummaryAPIView(APIView):
     permission_classes=[IsAuthenticated]
 
     def get(self,request):
+        user_id=request.user.id
+        cache_key = f"expense_summary_{user_id}"
+        cached_data=cache.get(cache_key)
+
+        if cached_data:
+            return Response(cached_data)
+
         monthly_expense=(
             Transactions.objects
             .select_related('type','type__category')
-            .filter(type__category__name="Expense")
+            .filter(user=request.user,type__category__name="Expense")
             .values('date__year','date__month')
             .annotate(total=Sum('amount'))
             .order_by('date__year','date__month')
@@ -212,16 +245,20 @@ class ExpenseSummaryAPIView(APIView):
         yearly_expense=(
             Transactions.objects
             .select_related('type', 'type__category')
-            .filter(type__category__name='Expense')
+            .filter(user=request.user,type__category__name='Expense')
             .values('date__year')
             .annotate(total=Sum('amount'))
             .order_by('date__year')
         )
 
-        return Response({
+        data={
             "monthly_expense": list(monthly_expense),
             "yearly_expense": list(yearly_expense),
-        })
+        }
+
+        cache.set(cache_key,data,timeout=10*60)
+
+        return Response(data)
     
 
 class CategoryByMonthAPIView(APIView):
@@ -310,11 +347,17 @@ class RetrieveUpdateDestroyBudgetAPIView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class BudgetList(APIView):
-    permission_classes=[AllowAny]
+    permission_classes=[IsAuthenticated]
+
     def get(self,request):
         current_time=timezone.now()
         budgets=Budget.objects.filter(user=self.request.user)
         budget_data=[] 
+
+        transactions = Transactions.objects.filter(
+            user=self.request.user,
+            date__year=current_time.year
+        )
 
         for budget in budgets:
             if budget.period=='Yearly':

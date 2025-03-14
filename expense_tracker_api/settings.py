@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'silk',
+    'debug_toolbar',
     'transactions',
     'users',
     'savings'
@@ -59,7 +60,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'silk.middleware.SilkyMiddleware'
+    'silk.middleware.SilkyMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware', 
 ]
 
 
@@ -172,3 +174,5 @@ CACHES = {
         }
     }
 }
+
+INTERNAL_IPS = ['127.0.0.1']

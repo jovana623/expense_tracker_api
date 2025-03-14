@@ -5,7 +5,7 @@ from django.db.models.signals import post_save,post_delete
 from django.dispatch import receiver
 from savings.models import Payments
  
-User=get_user_model()
+User=get_user_model() 
 
 class Categories(models.Model):
     name=models.CharField(max_length=255)

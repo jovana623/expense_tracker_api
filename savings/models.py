@@ -8,7 +8,7 @@ User=get_user_model()
 
 
 class Savings(models.Model):
-
+ 
     class TypeStatus(models.TextChoices):
         in_progress='In progress'
         completed='Completed'
@@ -25,7 +25,7 @@ class Savings(models.Model):
     description=models.TextField()
     
 
-    def __str__(self):
+    def __str__(self): 
         return self.name
 
 
