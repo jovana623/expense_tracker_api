@@ -17,4 +17,3 @@ urlpatterns = [
     path("reset-account/",ResetAccountView.as_view(),name="reset-account"),
     path("update-currency/",UpdateCurrencyView.as_view(),name="update-currency")
 ]
-   

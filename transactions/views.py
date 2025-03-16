@@ -3,17 +3,34 @@ from .models import Categories,Types,Transactions,Budget
 from .serializers import CategorySerializer,TypeSerializer,TransactionSerializer,TransactionReadSerializer,TypeReadSerializer,BudgetSerializer,BudgetReadSerializer
 from rest_framework.permissions import AllowAny,IsAuthenticated
 from django.utils import timezone
-from django.db.models import Q,Min,Max
+from django.db.models import Q,Min,Max,Sum,Avg,Case, When, F, DecimalField,Value, IntegerField
 from .pagination import CustomPageNumberPagination
 from rest_framework.views import APIView
-from django.db.models import Sum,Avg,Case, When, F, DecimalField
 from rest_framework.response import Response
 from django.db.models.functions import TruncMonth
 from datetime import datetime,timedelta
 from dateutil.relativedelta import relativedelta
 from users.permissions import IsStuffUser
 from django.core.cache import cache
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 
+@receiver(post_save,sender=Transactions)
+def clear_cache_on_transaction_change(sender,instance,**kwargs):
+    cache_key_monthly = f"user_{instance.user.id}_monthly_spending_{instance.type.name}"
+    cache.delete(cache_key_monthly)
+    cache_key_stats=f"user_{instance.user.id}_statistics"
+    cache.delete(cache_key_stats)
+
+@receiver(post_delete,sender=Transactions)
+def clear_cache_on_transaction_delete(sender,instance,**kwargs):
+    cache_key_monthly = f"user_{instance.user.id}_monthly_spending_{instance.type.name}"
+    cache.delete(cache_key_monthly)
+    cache_key_stats=f"user_{instance.user.id}_statistics"
+    cache.delete(cache_key_stats)
+    
 
 #Categories
 class CreateCategoryAPIView(generics.CreateAPIView):
@@ -23,26 +40,19 @@ class CreateCategoryAPIView(generics.CreateAPIView):
 
 
 class CategoriesListAPIView(generics.ListAPIView):
-    serializer_class=CategorySerializer
-    permission_classes=[AllowAny]
-
-    def get_queryset(self):
-        cache_key="categories_list"
-        cached_data=cache.get(cache_key)
-
-        if cached_data is not None:
-            return cached_data
-        
-        queryset=Categories.objects.all()
-        cache.set(cache_key,queryset,timeout=60*60*24)
-        return queryset
- 
-
-class RetrieveUpdateDestroyCategoryAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset=Categories.objects.all()
     serializer_class=CategorySerializer
     permission_classes=[AllowAny]
 
+    @method_decorator(cache_page(60*24, key_prefix="categories"))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    
+class RetrieveUpdateDestroyCategoryAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset=Categories.objects.all()
+    serializer_class=CategorySerializer
+    permission_classes=[AllowAny]
 
 #Types
 class CreateTypeAPIView(generics.CreateAPIView):
@@ -72,21 +82,13 @@ class UpdateDestroyTypeAPIView(generics.UpdateAPIView,generics.DestroyAPIView):
 
 
 class TypesListAPIView(generics.ListAPIView):
+    queryset = Types.objects.all()
     serializer_class=TypeReadSerializer
     permission_classes=[AllowAny]
- 
-    def get_queryset(self):
-        cache_key="types_list"
-        cached_data=cache.get(cache_key)
 
-        if cached_data:
-            return cached_data
-        
-        queryset=Types.objects.all().select_related("category")
-        serializer=TypeReadSerializer(queryset,many=True)
-        serialized_data=serializer.data
-        cache.set(cache_key,serialized_data,timeout=60*60*24)
-        return serialized_data
+    @method_decorator(cache_page(60*60*24,key_prefix="types_list"))
+    def list(self,request,*args,**kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 class RetrieveTypeAPIView(generics.RetrieveAPIView):
@@ -103,8 +105,7 @@ class CreateTransactionAPIView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         transaction = serializer.save(user=self.request.user)
-        cache.delete(f"income_summary_{transaction.user.id}")
-        cache.delete(f"expense_summary_{transaction.user_id}")
+        return transaction
 
 
 class TransactionsListAPIView(generics.ListAPIView): 
@@ -117,6 +118,7 @@ class TransactionsListAPIView(generics.ListAPIView):
         filter_month=self.request.query_params.get('month')
         sort_by=self.request.query_params.get('sortBy') 
         search=self.request.query_params.get('search')
+        type=self.request.query_params.get('type')
         
         queryset = Transactions.objects.filter(user=self.request.user).select_related("user", "type").prefetch_related("type__category")
 
@@ -144,6 +146,9 @@ class TransactionsListAPIView(generics.ListAPIView):
         if search:
             queryset = queryset.filter(Q(name__icontains=search) | Q(description__icontains=search))
 
+        if type:
+            queryset=queryset.filter(type__id=type)
+
         return queryset
 
 
@@ -152,21 +157,10 @@ class RetrieveUpdateDestroyTransactionAPIView(generics.RetrieveUpdateDestroyAPIV
     serializer_class=TransactionSerializer
     permission_classes=[IsAuthenticated]
 
-    def perform_update(self, serializer):
-        transaction=serializer.save()
-        cache.delete(f"income_summary_{transaction.user.id}")
-        cache.delete(f"expense_summary_{transaction.user_id}")
-
-    def perform_destroy(self, instance):
-        user_id=instance.user.id
-        instance.delete()
-        cache.delete(f"income_summary_{user_id}")
-        cache.delete(f"expense_summary_{user_id}")
-
 
 class IncomeTransactionsAPIView(TransactionsListAPIView):
     serializer_class=TransactionReadSerializer
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated] 
     
     def get_queryset(self):
         queryset=super().get_queryset()
@@ -180,97 +174,104 @@ class ExpenseTransactionsAPIView(TransactionsListAPIView):
     def get_queryset(self):
         queryset=super().get_queryset()
         return queryset.filter(type__category__name='Expense')
-
-
-
-class IncomeSummaryAPIView(APIView):
-    permission_classes=[IsAuthenticated]
     
-    def get(self,request):
-        user_id=request.user.id
-        cache_key = f"income_summary_{user_id}"
-        cached_data=cache.get(cache_key)
 
-        if cached_data:
-            return Response(cached_data)
+class DashboardAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        time=self.request.query_params.get('time')
+        month=self.request.query_params.get('month')
+
+        current_year = timezone.now().year
+        current_month = timezone.now().month
+
+        transactions=(Transactions.objects
+                    .filter(user=request.user)
+                    .values("date__year","date__month")
+                    .annotate(
+                        total_income=Sum(
+                            Case(
+                                When(type__category__name="Income",then="amount"),
+                                default=Value(0),
+                                output_field=IntegerField()
+                            )
+                        ),
+                        total_expense=Sum(
+                            Case(
+                                When(type__category__name="Expense",then="amount"),
+                                default=Value(0),
+                                output_field=IntegerField()
+                            )
+                        )
+                    ).order_by('date__year','date__month')
+                )
+        monthly_data=[
+            {
+                "year": entry["date__year"],
+                "month": entry["date__month"],
+                "total_income": entry["total_income"],
+                "total_expense": entry["total_expense"],
+            }
+            for entry in transactions if entry["date__month"] is not None
+        ]
+        yearly_data={}
+        for entry in transactions:
+            year=entry["date__year"]
+            if year not in yearly_data:
+                yearly_data[year]={"total_income":0,"total_expense":0} 
+            yearly_data[year]["total_income"]+=entry["total_income"]
+            yearly_data[year]["total_expense"]+=entry["total_expense"]
+
+        yearly_data_list = [
+            {"year": y, "total_income": yearly_data[y]["total_income"], "total_expense": yearly_data[y]["total_expense"]}
+            for y in yearly_data
+        ]
+
+        total_income = 0  
+        total_expense = 0 
+
+        if time == "month":
+            return Response(next((entry for entry in monthly_data if entry["year"] == current_year and entry["month"] == (int(month) if month else current_month)), {}))
         
-        monthly_income = (
-            Transactions.objects
-            .select_related('type','type__category')
-            .filter(user=request.user, type__category__name='Income')
-            .values('date__year', 'date__month')
-            .annotate(total=Sum('amount'))
-            .order_by('date__year', 'date__month')
-        )
- 
-        yearly_income=(
-            Transactions.objects
-            .select_related('type','type__category')
-            .filter(user=request.user, type__category__name='Income')
-            .values('date__year')
-            .annotate(total=Sum('amount'))
-            .order_by('date__year')
-        )
+        if time == "year":
+            return Response(next((entry for entry in yearly_data_list if entry["year"] == current_year), {}))
+        
+        if month:
+            selected_year, selected_month = map(int, month.split("-")) if "-" in month else (current_year, int(month))
+            return Response(next((entry for entry in monthly_data if entry["year"] == selected_year and entry["month"] == selected_month), {}))
 
-        data={
-            "monthly_income": list(monthly_income),
-            "yearly_income": list(yearly_income),
-        }
+        if time == "all":
+            total_income = sum(entry["total_income"] for entry in yearly_data_list)
+            total_expense = sum(entry["total_expense"] for entry in yearly_data_list)
 
-        cache.set(cache_key,data,timeout=60*10)
+        return Response({
+            "monthly_data": monthly_data, 
+            "yearly_data": yearly_data_list,
+            "total_income": total_income,
+            "total_expense": total_expense
+        })
 
-        return Response(data)
-    
-
-class ExpenseSummaryAPIView(APIView):
-    permission_classes=[IsAuthenticated]
-
-    def get(self,request):
-        user_id=request.user.id
-        cache_key = f"expense_summary_{user_id}"
-        cached_data=cache.get(cache_key)
-
-        if cached_data:
-            return Response(cached_data)
-
-        monthly_expense=(
-            Transactions.objects
-            .select_related('type','type__category')
-            .filter(user=request.user,type__category__name="Expense")
-            .values('date__year','date__month')
-            .annotate(total=Sum('amount'))
-            .order_by('date__year','date__month')
-        )
-
-        yearly_expense=(
-            Transactions.objects
-            .select_related('type', 'type__category')
-            .filter(user=request.user,type__category__name='Expense')
-            .values('date__year')
-            .annotate(total=Sum('amount'))
-            .order_by('date__year')
-        )
-
-        data={
-            "monthly_expense": list(monthly_expense),
-            "yearly_expense": list(yearly_expense),
-        }
-
-        cache.set(cache_key,data,timeout=10*60)
-
-        return Response(data)
-    
 
 class CategoryByMonthAPIView(APIView):
     permission_classes=[IsAuthenticated]
 
     def get(self,request):
+        user = self.request.user
         type_name=self.request.query_params.get("type")
         queryset=Transactions.objects.all()
 
+        cache_key = f"user_{user.id}_monthly_spending_{type_name}"
+        cached_data=cache.get(cache_key)
+
+        if cached_data:
+            return Response(cached_data)
+        
+        queryset = Transactions.objects.filter(user=user)
+
         if(type_name):
             queryset=queryset.filter(type__name=type_name)
-
+        
         monthly_spending=(
             queryset
             .values('type__name','date__year','date__month')
@@ -278,49 +279,60 @@ class CategoryByMonthAPIView(APIView):
             .order_by('date__year','date__month','type__name')
             )
         
+        cache.set(cache_key,list(monthly_spending),timeout=60*60*24)
+        
         return Response(list(monthly_spending))
 
 
 class StatisticsAPIView(TransactionsListAPIView):
-    def get(self,request,*args,**kwargs):
-        querysetIncome=self.get_queryset().filter(type__category__name='Income')
-        querysetExpense=self.get_queryset().filter(type__category__name='Expense')
-        
-        top_income = querysetIncome.order_by('-amount').first()
-        avg_income=querysetIncome.aggregate(avg_income=Avg('amount'))
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        cache_key = f"user_{user.id}_statistics"
 
-        top_income_types=(querysetIncome
-        .values('type__name')
-        .annotate(total_amount=Sum('amount'))
-        .order_by('-total_amount')[:4]
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
+
+        queryset = self.get_queryset().filter(user=user).select_related("type").prefetch_related("type__category")
+
+        top_income_query = queryset.filter(type__category__name="Income").order_by("-amount").values("name", "amount", "date")[:1]
+        top_income = top_income_query.first() if top_income_query.exists() else {"name": None, "amount": None, "date": None}
+
+        top_expense_query = queryset.filter(type__category__name="Expense").order_by("-amount").values("name", "amount", "date")[:1]
+        top_expense = top_expense_query.first() if top_expense_query.exists() else {"name": None, "amount": None, "date": None}
+
+        avg_stats = queryset.aggregate(
+            avg_income=Avg("amount", filter=Q(type__category__name="Income")),
+            avg_expense=Avg("amount", filter=Q(type__category__name="Expense")),
         )
 
-        top_expense_types=(querysetExpense
-        .values('type__name')
-        .annotate(total_amount=Sum('amount'))
-        .order_by('-total_amount')[:3]
+        top_income_types = list(
+            queryset.filter(type__category__name="Income")
+            .values("type__name")
+            .annotate(total_amount=Sum("amount"))
+            .order_by("-total_amount")[:4]
         )
-        
 
-        top_expense = querysetExpense.order_by('-amount').first()
-        avg_expense=querysetExpense.aggregate(avg_expense=Avg('amount'))
+        top_expense_types = list(
+            queryset.filter(type__category__name="Expense")
+            .values("type__name")
+            .annotate(total_amount=Sum("amount"))
+            .order_by("-total_amount")[:3]
+        )
 
-        return Response({
-            "top_income": {
-                "name": top_income.name if top_income else None,
-                "amount": top_income.amount if top_income else None,
-                "date": top_income.date if top_income else None,
-            },
-            "avg_income": avg_income["avg_income"],
-            "top_expense": {
-                "name": top_expense.name if top_expense else None,
-                "amount": top_expense.amount if top_expense else None,
-                "date": top_expense.date if top_expense else None,
-            },
-            "avg_expense": avg_expense["avg_expense"],
-            "top_income_types":list(top_income_types),
-            "top_expense_types":list(top_expense_types)
-        })
+        response_data = {
+            "top_income": top_income,
+            "avg_income": avg_stats["avg_income"],
+            "top_expense": top_expense,
+            "avg_expense": avg_stats["avg_expense"],
+            "top_income_types": top_income_types,
+            "top_expense_types": top_expense_types,
+        }
+
+        cache.set(cache_key, response_data, timeout=60 * 60 * 24) 
+
+        return Response(response_data)
     
 
 #Budget

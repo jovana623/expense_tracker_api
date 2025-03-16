@@ -13,6 +13,7 @@ from django.conf import settings
 from transactions.models import Transactions,Budget
 from savings.models import Savings
 from django.db import transaction
+from django.core.cache import cache
 
 User=get_user_model()
 
@@ -45,9 +46,20 @@ class CurrentUserView(APIView):
     parser_classes=[parsers.MultiPartParser,parsers.FormParser]
 
     def get(self, request):
-        user = request.user
-        serializer = UserSerializer(user)
-        return Response(serializer.data)
+        user_id=request.user.id
+        cache_key = f"user_{user_id}_data"
+        cached_data=cache.get(cache_key)
+
+        if cached_data:
+            return Response(cached_data)
+
+        user=request.user
+        serializer=UserSerializer(user)
+        user_data = serializer.data
+
+        cache.set(cache_key, user_data, timeout=60 * 60)
+        return Response(user_data)
+
     
     def patch(self,request):
         user=request.user
