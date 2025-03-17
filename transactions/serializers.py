@@ -52,6 +52,6 @@ class BudgetSerializer(serializers.ModelSerializer):
 class BudgetReadSerializer(serializers.ModelSerializer):
     type=TypeReadSerializer()
 
-    class Meta:
+    class Meta: 
         model=Budget
         fields=['id','type','amount','date','period','user'] 

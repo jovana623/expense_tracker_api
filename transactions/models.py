@@ -1,9 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 import datetime
-from django.db.models.signals import post_save,post_delete
-from django.dispatch import receiver
-from savings.models import Payments
+
  
 User=get_user_model() 
 
@@ -44,36 +42,11 @@ class Budget(models.Model):
     amount=models.DecimalField(max_digits=10,decimal_places=2)
     date=models.DateField(default=datetime.date.today)
     period=models.CharField(max_length=10,choices=Period.choices)
+    
 
     def __str__(self):
         return f"{self.user} - {self.type.name} - {self.period}"
     
  
-@receiver(post_save,sender=Payments)
-def create_transaction_for_payments(sender,instance,**kwargs):
-    saving=instance.saving
-    transaction_type=Types.objects.filter(name="Savings").first()
-
-    Transactions.objects.create(
-        user=saving.user,
-        name=f"Payment for {saving.name}",
-        amount=instance.amount,
-        date=instance.date,
-        description=f"Payment toward saving goal {saving.name}",
-        type=transaction_type
-    )
-
-@receiver(post_delete,sender=Payments)
-def delete_transaction_for_payments(sender,instance,**kwargs):
-    saving=instance.saving
-    
-    Transactions.objects.filter(
-        user=saving.user,
-        name=f"Payment for {saving.name}",
-        amount=instance.amount,
-        date=instance.date,
-        description=f"Payment toward saving goal {saving.name}",
-    ).delete()
-
 
     
