@@ -377,7 +377,18 @@ class DailyBalancesView(APIView):
     permission_classes=[IsAuthenticated]
     
     def get(self,request,*args,**kwargs):
+        user_id = request.user.id
+        month_param=request.query_params.get("month")
+
+        cache_key = f"daily_balances_{user_id}_{month_param}"
+
+        cached_data=cache.get(cache_key)
+
+        if cached_data:
+            return Response(cached_data)
+        
         user_transactions=Transactions.objects.filter(user=request.user)
+
         min_max_dates=user_transactions.aggregate(
             first_date=Min("date"),
             last_date=Max("date")
@@ -437,10 +448,6 @@ class DailyBalancesView(APIView):
             })
 
             current_date += timedelta(days=1)
-
-        
-        
-        month_param=request.query_params.get("month")
         
 
         if month_param:
@@ -453,6 +460,8 @@ class DailyBalancesView(APIView):
                 ]
             except ValueError:
                 return Response({"error": "Month must be in the format YYYY-MM."}, status=400)
+            
+        cache.set(cache_key, daily_balances, timeout=60*60)
 
         return Response(daily_balances)
 
@@ -461,6 +470,16 @@ class MonthlyBalance(APIView):
     permission_classes=[IsAuthenticated]
 
     def get(self,request,*args,**kwargs):
+        user_id = request.user.id
+        time=request.query_params.get("time")
+        month=request.query_params.get("month")
+
+        cache_key = f"monthly_balance_{user_id}_time_{time}_month_{month}"
+        cached_data = cache.get(cache_key)
+
+        if cached_data:
+            return Response(cached_data)
+
         user_transactions = Transactions.objects.filter(user=request.user)
         min_max_dates=user_transactions.aggregate(
             first_date=Min("date"),
@@ -520,9 +539,6 @@ class MonthlyBalance(APIView):
 
             current_month += relativedelta(months=1)
 
-        time=request.query_params.get("time")
-        month=request.query_params.get("month")
-
         current_year=datetime.now().year
 
         if (time=='year'):
@@ -544,6 +560,7 @@ class MonthlyBalance(APIView):
                 ]
             except ValueError:
                 return Response({"error": "Month must be in the format YYYY-MM."}, status=400)
-
+            
+        cache.set(cache_key, monthly_balances, timeout=60*60)
         return Response(monthly_balances)
 

@@ -42,10 +42,18 @@ def clear_cache_on_transaction_change(sender,instance,**kwargs):
 
     if instance.type:
         budget=Budget.objects.filter(user=instance.user,type=instance.type)
-
         if budget.exists():
             cache_key_budget=f"user_{instance.user.id}_budgets"
             cache.delete(cache_key_budget)
+    
+    daily_balances_keys = cache.keys(f"daily_balances_{instance.user_id}_*") 
+    for key in daily_balances_keys:
+        cache.delete(key)
+
+    monthly_balances_keys = cache.keys(f"monthly_balance_{instance.user_id}_*") 
+    for key in monthly_balances_keys:
+        cache.delete(key)
+    
 
 @receiver(post_delete,sender=Transactions)
 def clear_cache_on_transaction_delete(sender,instance,**kwargs):
@@ -56,11 +64,18 @@ def clear_cache_on_transaction_delete(sender,instance,**kwargs):
 
     if instance.type:
         budget=Budget.objects.filter(user=instance.user,type=instance.type)
-
         if budget.exists():
             cache_key_budget=f"user_{instance.user.id}_budgets"
             cache.delete(cache_key_budget)
     
+    daily_balances_keys = cache.keys(f"daily_balances_{instance.user_id}_*") 
+    for key in daily_balances_keys:
+        cache.delete(key)
+
+    monthly_balances_keys = cache.keys(f"monthly_balance_{instance.user_id}_*") 
+    for key in monthly_balances_keys:
+        cache.delete(key)
+
 
 #clear cache on budget change
 @receiver(post_save,sender=Budget)
