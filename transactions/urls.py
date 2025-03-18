@@ -17,7 +17,7 @@ urlpatterns = [
     path('<int:pk>',views.RetrieveUpdateDestroyTransactionAPIView.as_view(),name='single_transaction'),
     path('income/',views.IncomeTransactionsAPIView.as_view(),name='income_transactions'),
     path('expense/',views.ExpenseTransactionsAPIView.as_view(),name='expense_transactions'),
-    path('spending/month/',views.CategoryByMonthAPIView.as_view(),name='category_month'),
+    path('spending/month/',views.TypeByMonthAPIView.as_view(),name='category_month'),
     #budget
     path('budget/create/',views.CreateBudgetAPIView.as_view(),name='create_budget'), 
     path('budget/',views.BudgetListAPIView.as_view(),name='budget'),
