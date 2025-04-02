@@ -26,7 +26,8 @@ urlpatterns = [
     path('daily-balances/',views.DailyBalancesView.as_view(),name="daily_balance"),
     path('monthly-balances/',views.MonthlyBalance.as_view(),name='monthly_balances'),
     #stats
-    path('dashboard/',views.DashboardAPIView.as_view(),name="dashboard_data"),
+    path('dashboard/summary/',views.DashboardSummaryAPIView.as_view(),name="dashboard_summary"),
+    path('dashboard/history/',views.DashboardHistoryAPIView().as_view(),name="dashboard_history"),
     path('statistics/',views.StatisticsAPIView.as_view(),name='statistics'),
 ]
    

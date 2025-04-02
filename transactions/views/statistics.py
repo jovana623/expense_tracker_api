@@ -7,81 +7,85 @@ from django.core.cache import cache
 from rest_framework.response import Response
 from transactions.views import TransactionsListAPIView
 
-class DashboardAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+class DashboardSummaryAPIView(TransactionsListAPIView):
+    pagination_class=None
 
-    def get(self, request):
-        time=self.request.query_params.get('time')
-        month=self.request.query_params.get('month')
+    def list(self, request, *args, **kwargs):
+        queryset=self.get_queryset()
 
-        current_year = timezone.now().year
-        current_month = timezone.now().month
+        total_income=queryset.filter(type__category__name="Income").aggregate(
+            total=Sum("amount")
+        )["total"] or 0
 
-        transactions=(Transactions.objects
-                    .filter(user=request.user)
-                    .values("date__year","date__month")
-                    .annotate(
-                        total_income=Sum(
-                            Case(
-                                When(type__category__name="Income",then="amount"),
-                                default=Value(0),
-                                output_field=IntegerField()
-                            )
-                        ),
-                        total_expense=Sum(
-                            Case(
-                                When(type__category__name="Expense",then="amount"),
-                                default=Value(0),
-                                output_field=IntegerField()
-                            )
-                        )
-                    ).order_by('date__year','date__month')
-                )
-        monthly_data=[
-            {
-                "year": entry["date__year"],
-                "month": entry["date__month"],
-                "total_income": entry["total_income"],
-                "total_expense": entry["total_expense"],
-            }
-            for entry in transactions if entry["date__month"] is not None
-        ]
-        yearly_data={}
-        for entry in transactions:
-            year=entry["date__year"]
-            if year not in yearly_data:
-                yearly_data[year]={"total_income":0,"total_expense":0} 
-            yearly_data[year]["total_income"]+=entry["total_income"]
-            yearly_data[year]["total_expense"]+=entry["total_expense"]
-
-        yearly_data_list = [
-            {"year": y, "total_income": yearly_data[y]["total_income"], "total_expense": yearly_data[y]["total_expense"]}
-            for y in yearly_data
-        ]
-
-        total_income = 0  
-        total_expense = 0 
-
-        if time == "month":
-            return Response(next((entry for entry in monthly_data if entry["year"] == current_year and entry["month"] == (int(month) if month else current_month)), {}))
-        
-        if time == "year":
-            return Response(next((entry for entry in yearly_data_list if entry["year"] == current_year), {}))
-        
-        if month:
-            selected_year, selected_month = map(int, month.split("-")) if "-" in month else (current_year, int(month))
-            return Response(next((entry for entry in monthly_data if entry["year"] == selected_year and entry["month"] == selected_month), {}))
-
-        if time == "all":
-            total_income = sum(entry["total_income"] for entry in yearly_data_list)
-            total_expense = sum(entry["total_expense"] for entry in yearly_data_list)
+        total_expense=queryset.filter(type__category__name="Expense").aggregate(
+            total=Sum("amount")
+        )["total"] or 0
 
         return Response({
-            "monthly_data": monthly_data, 
-            "yearly_data": yearly_data_list,
-            "total_income": total_income,
-            "total_expense": total_expense
+            "total_income":total_income,
+            "total_expense":total_expense
         })
+
+
+class DashboardHistoryAPIView(APIView):
+    permission_classes=[IsAuthenticated]
+
+    def get(self, request):
+        queryset = Transactions.objects.filter(user=request.user).select_related("type", "type__category")
+
+        transactions = (
+            queryset
+            .values("date__year", "date__month")
+            .annotate(
+                total_income=Sum(
+                    Case(
+                        When(type__category__name="Income", then="amount"),
+                        default=Value(0),
+                        output_field=IntegerField(),
+                    )
+                ),
+                total_expense=Sum(
+                    Case(
+                        When(type__category__name="Expense", then="amount"),
+                        default=Value(0),
+                        output_field=IntegerField(),
+                    )
+                ),
+            )
+            .order_by("date__year", "date__month")
+        )
+
+        monthly_data = [
+            {
+                "month": f"{transaction['date__year']}-{str(transaction['date__month']).zfill(2)}",
+                "total_income": transaction["total_income"],
+                "total_expense": transaction["total_expense"],
+            }
+            for transaction in transactions if transaction["date__month"] is not None
+        ]
+
+        yearly_data = {}
+        for transaction in transactions:
+            year = transaction["date__year"]
+            if year not in yearly_data:
+                yearly_data[year] = {"total_income": 0, "total_expense": 0}
+            yearly_data[year]["total_income"] += transaction["total_income"]
+            yearly_data[year]["total_expense"] += transaction["total_expense"]
+
+        yearly_data_list = [
+            {
+                "year": year,
+                "total_income": yearly_data[year]["total_income"],
+                "total_expense": yearly_data[year]["total_expense"],
+            }
+            for year in yearly_data
+        ]
+
+        return Response({
+            "monthly_data": monthly_data,
+            "yearly_data": yearly_data_list,
+        })
+
 
 
 class StatisticsAPIView(TransactionsListAPIView):
