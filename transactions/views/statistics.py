@@ -86,8 +86,6 @@ class DashboardHistoryAPIView(APIView):
             "yearly_data": yearly_data_list,
         })
 
-
-
 class StatisticsAPIView(TransactionsListAPIView):
     def get(self, request, *args, **kwargs):
         user = request.user

@@ -8,7 +8,6 @@ from rest_framework.views import APIView
 from django.core.cache import cache
 from rest_framework.response import Response
 
-
 class CreateBudgetAPIView(generics.CreateAPIView):
     serializer_class=BudgetSerializer
     permission_classes=[IsAuthenticated]
@@ -20,7 +19,7 @@ class CreateBudgetAPIView(generics.CreateAPIView):
 class BudgetListAPIView(APIView):
     permission_classes = [IsAuthenticated]
  
-    def get(self, request):
+    def get(self, request): 
         user=request.user
         current_time=timezone.now()
 

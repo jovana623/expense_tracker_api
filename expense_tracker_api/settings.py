@@ -46,9 +46,11 @@ INSTALLED_APPS = [
     'corsheaders',
     'silk',
     'debug_toolbar',
+    'channels',
     'transactions',
     'users',
-    'savings'
+    'savings',
+    'notifications'
 ]
 
 MIDDLEWARE = [
@@ -176,4 +178,15 @@ CACHES = {
 }
 
 INTERNAL_IPS = ['127.0.0.1']
- 
+
+ASGI_APPLICATION = "expense_tracker_api.asgi.application"
+
+CHANNEL_LAYERS={
+    "default":{
+        "BACKEND":"channels_redis.core.RedisChannelLayer",
+        "CONFIG":{
+            "hosts":[("127.0.0.1",6379)]
+        },
+    },
+}
+
