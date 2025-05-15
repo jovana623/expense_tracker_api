@@ -9,18 +9,25 @@ https://docs.djangoproject.com/en/5.0/howto/deployment/asgi/
 
 import os
 import django
+django.setup()
 from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.auth import AuthMiddlewareStack
 from django.core.asgi import get_asgi_application
-import notifications.routing
+
+from .middleware import JWTAuthMiddleware
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'expense_tracker_api.settings')
 
+
+import notifications.routing
+import support.routing
+
+all_websocket_patterns=notifications.routing.websocket_urlpatterns + support.routing.websocket_urlpatterns
+
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    "websocket": AuthMiddlewareStack(
+    "websocket": JWTAuthMiddleware(
         URLRouter(
-            notifications.routing.websocket_urlpatterns
+            all_websocket_patterns
         )
     ),
-})
+}) 

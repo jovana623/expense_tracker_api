@@ -25,7 +25,8 @@ urlpatterns = [
     path('api/users/',include('users.urls')),
     path('api/transactions/',include('transactions.urls')),
     path('api/savings/',include('savings.urls')),
-    path('api/notifications/',include('notifications.urls'))
+    path('api/notifications/',include('notifications.urls')),
+    path('api/support/',include('support.urls'))
 ]
   
 if settings.DEBUG:

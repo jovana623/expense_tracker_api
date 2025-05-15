@@ -14,6 +14,13 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_currency_choices(self, obj):
         return [{"code": code, "symbol": symbol} for code, symbol in User.CURRENCY_CHOICES]
+    
+
+class SimpleUserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model=User
+        fields=['id','username','avatar']
 
 
 class RegisterSerializer(serializers.ModelSerializer):
